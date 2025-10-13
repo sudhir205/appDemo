@@ -1,0 +1,287 @@
+src/
+├── components/
+│   ├── ToolBar.tsx
+│   ├── Dropdown.tsx
+│   └── Layout.tsx
+├── pages/
+│   ├── Dashboard.tsx
+│   └── AddJobDetail.tsx
+├── context/
+│   └── DropdownContext.tsx
+├── api/
+│   └── fetchDropdownOptions.ts
+├── types/
+│   └── dropdowns.ts
+
+-----------Header.tsx--------------
+
+import React from 'react';
+
+const Header: React.FC = () => (
+  <header className="app-header">
+    <h1>Dashboard</h1>
+  </header>
+);
+
+export default Header;
+
+----------------Footer.tsx-------------------
+import React from 'react';
+
+const Footer: React.FC = () => (
+  <footer className="app-footer">
+    <span>© 2025 Your Company</span>
+  </footer>
+);
+
+export default Footer;
+
+
+----------Layout.tsx----------------
+import React from 'react';
+import Header from './Header';
+import Footer from './Footer';
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => (
+  <div className="layout">
+    <Header />
+    <main>{children}</main>
+    <Footer />
+  </div>
+);
+
+export default Layout;
+
+-------Dashboard.tsx-----------------
+
+import React, { useState, useEffect } from 'react';
+import Layout from '../components/Layout';
+import ToolBar from '../components/ToolBar';
+import DataGrid from '../components/DataGrid';
+import { FilterState } from '../types/dropdowns';
+import { fetchGridData } from '../api/fetchGridData';
+
+const Dashboard: React.FC = () => {
+  const [filters, setFilters] = useState<FilterState>({
+    portfolio: '',
+    subPortfolio: '',
+    region: '',
+    process: '',
+    subProcess: '',
+    hop: '',
+    date: ''
+  });
+
+  const [gridData, setGridData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const data = await fetchGridData(filters);
+      setGridData(data);
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [filters]);
+
+  return (
+    <Layout>
+      <ToolBar filters={filters} setFilters={setFilters} />
+      {loading ? (
+        <div className="grid-loading">Loading data...</div>
+      ) : (
+        <DataGrid rowData={gridData} />
+      )}
+    </Layout>
+  );
+};
+
+export default Dashboard;
+
+---Dropdown.tsx----
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { DropdownOptions, DropdownKeys } from '../types/dropdowns';
+import { fetchDropdownOptions } from '../api/fetchDropdownOptions';
+
+interface DropdownContextType {
+  options: DropdownOptions;
+  loading: boolean;
+}
+
+
+const DropdownContext = createContext<DropdownContextType>({
+  options: {},
+  loading: true
+});
+
+export const useDropdowns = () => useContext(DropdownContext);
+
+export const DropdownProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [options, setOptions] = useState<DropdownOptions>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDropdownOptions().then((data) => {
+      setOptions(data);
+      setLoading(false);
+    });
+  }, []);
+
+  return (
+    <DropdownContext.Provider value={{ options, loading }}>
+      {children}
+    </DropdownContext.Provider>
+  );
+};
+
+
+---------dropdowns.ts----------------
+
+export type DropdownKeys =
+  | 'portfolio'
+  | 'subPortfolio'
+  | 'region'
+  | 'process'
+  | 'subProcess'
+  | 'hop';
+
+export type DropdownOptions = {
+  [key in DropdownKeys]?: string[];
+};
+
+----------------fetchDropdownOptions.ts-------
+
+import { DropdownOptions } from '../types/dropdowns';
+
+export const fetchDropdownOptions = async (): Promise<DropdownOptions> => {
+  const response = await fetch('/api/dropdowns');
+  return response.json();
+};
+
+
+
+----------------Dropdown.tsx-------
+import React from 'react';
+
+interface DropdownProps {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}
+
+const Dropdown: React.FC<DropdownProps> = ({ label, value, options, onChange }) => (
+  <label className="dropdown-label">
+    <span>{label}:</span>
+    <select value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">-- Select --</option>
+      {options.map((opt) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+
+export default Dropdown;
+
+-------------TooBar.tsx-------------------
+
+import React from 'react';
+import { useDropdowns } from '../context/DropdownContext';
+import Dropdown from './Dropdown';
+
+interface ToolBarProps {
+  filters: Record<string, string>;
+  setFilters: (newFilters: Record<string, string>) => void;
+}
+
+const ToolBar: React.FC<ToolBarProps> = ({ filters, setFilters }) => {
+  const { options, loading } = useDropdowns();
+
+  const handleChange = (key: string, value: string) => {
+    setFilters({ ...filters, [key]: value });
+  };
+
+  if (loading) return <div>Loading filters...</div>;
+
+  return (
+    <div className="toolbar">
+      {Object.entries(options).map(([key, opts]) => (
+        <Dropdown
+          key={key}
+          label={key}
+          value={filters[key] || ''}
+          options={opts || []}
+          onChange={(val) => handleChange(key, val)}
+        />
+      ))}
+      <input
+        type="date"
+        value={filters.date || ''}
+        onChange={(e) => handleChange('date', e.target.value)}
+      />
+    </div>
+  );
+};
+
+export default ToolBar;
+
+
+------------------------------------------------------------------------------------
+
+AddJobDetail.tsx
+
+import React, { useState } from 'react';
+import { useDropdowns } from '../context/DropdownContext';
+import Dropdown from '../components/Dropdown';
+
+const AddJobDetail: React.FC = () => {
+  const { options, loading } = useDropdowns();
+  const [jobDetails, setJobDetails] = useState<Record<string, string>>({});
+
+  const handleChange = (key: string, value: string) => {
+    setJobDetails({ ...jobDetails, [key]: value });
+  };
+
+  if (loading) return <div>Loading dropdowns...</div>;
+
+  return (
+    <form>
+      {Object.entries(options).map(([key, opts]) => (
+        <Dropdown
+          key={key}
+          label={key}
+          value={jobDetails[key] || ''}
+          options={opts || []}
+          onChange={(val) => handleChange(key, val)}
+        />
+      ))}
+      {/* Add other job detail fields here */}
+    </form>
+  );
+};
+
+export default AddJobDetail;
+
+-----------------------------------
+App.tsx
+import { DropdownProvider } from './context/DropdownContext';
+
+const App: React.FC = () => (
+  <DropdownProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/addJobDetail" element={<AddJobDetail />} />
+      </Routes>
+    </Router>
+  </DropdownProvider>
+);
