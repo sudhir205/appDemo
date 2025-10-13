@@ -1,17 +1,33 @@
 src/
-├── components/
-│   ├── ToolBar.tsx
-│   ├── Dropdown.tsx
-│   └── Layout.tsx
-├── pages/
-│   ├── Dashboard.tsx
-│   └── AddJobDetail.tsx
-├── context/
-│   └── DropdownContext.tsx
-├── api/
-│   └── fetchDropdownOptions.ts
-├── types/
-│   └── dropdowns.ts
+├── api/                         # Backend API calls
+│   ├── fetchDropdownOptions.ts  # Fetches dropdown values
+│   └── fetchGridData.ts         # Fetches grid data based on filters
+
+├── components/                 # Reusable UI components
+│   ├── Header.tsx              # Top header
+│   ├── Footer.tsx              # Bottom footer
+│   ├── Layout.tsx              # Wraps header, footer, and main content
+│   ├── ToolBar.tsx             # Contains dropdowns + date input
+│   ├── Dropdown.tsx            # Reusable dropdown component
+│   └── DataGrid.tsx            # AG Grid wrapper
+
+├── context/                    # Shared state across pages
+│   └── DropdownContext.tsx     # Provides dropdown values to ToolBar and AddJobDetail
+
+├── pages/                      # Page-level components
+│   ├── Dashboard.tsx           # Main dashboard with filters + grid
+│   └── AddJobDetail.tsx        # Form page that reuses dropdowns
+
+├── types/                      # TypeScript interfaces and enums
+│   ├── dropdowns.ts            # Dropdown keys and option types
+│   └── filters.ts              # Filter state for API payloads
+
+├── styles/                     # Optional: CSS or SCSS modules
+│   └── layout.css              # Layout styling
+
+├── App.tsx                     # Root component with routing
+├── main.tsx                    # Vite entry point
+└── vite.config.ts              # Vite config for proxying and env vars
 
 -----------Header.tsx--------------
 
@@ -285,3 +301,74 @@ const App: React.FC = () => (
     </Router>
   </DropdownProvider>
 );
+
+------------filters.ts------------------
+
+export interface FilterState {
+  portfolio: string;
+  subPortfolio: string;
+  region: string;
+  process: string;
+  subProcess: string;
+  hop: string;
+  date: string;
+}
+
+---------------------------------------
+
+fetchGridData.ts         
+
+
+import { FilterState } from '../types/filters';
+
+export const fetchGridData = async (filters: FilterState): Promise<any[]> => {
+  try {
+    const response = await fetch('/api/grid-data', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(filters)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error('Failed to fetch grid data:', error);
+    return [];
+  }
+};
+
+--------------------main.tsx----------------------
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import App from './App';
+import Dashboard from './pages/Dashboard';
+import AddJobDetail from './pages/AddJobDetail';
+import { DropdownProvider } from './context/DropdownContext';
+import './styles/layout.css'; // Optional: global styles
+
+const root = ReactDOM.createRoot(document.getElementById('root')!);
+
+root.render(
+  <React.StrictMode>
+    <DropdownProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<App />}>
+            <Route index element={<Dashboard />} />
+            <Route path="addJobDetail" element={<AddJobDetail />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </DropdownProvider>
+  </React.StrictMode>
+);
+
+
