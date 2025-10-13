@@ -256,32 +256,84 @@ export default ToolBar;
 AddJobDetail.tsx
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDropdowns } from '../context/DropdownContext';
-import Dropdown from '../components/Dropdown';
+import { DropdownOptions } from '../types/dropdowns';
 
 const AddJobDetail: React.FC = () => {
-  const { options, loading } = useDropdowns();
-  const [jobDetails, setJobDetails] = useState<Record<string, string>>({});
+  const { options } = useDropdowns();
+  const navigate = useNavigate();
 
-  const handleChange = (key: string, value: string) => {
-    setJobDetails({ ...jobDetails, [key]: value });
+  const [formData, setFormData] = useState({
+    portfolio: '',
+    subPortfolio: '',
+    region: '',
+    process: '',
+    subProcess: '',
+    hop: '',
+    notes: ''
+  });
+
+  const handleChange = (key: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  if (loading) return <div>Loading dropdowns...</div>;
+  const handleSave = async () => {
+    try {
+      const response = await fetch('/api/job-detail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Save failed: ${response.status}`);
+      }
+
+      alert('Job detail saved successfully!');
+      navigate('/');
+    } catch (error) {
+      console.error('Error saving job detail:', error);
+      alert('Failed to save job detail.');
+    }
+  };
+
+  const handleClose = () => {
+    navigate('/');
+  };
 
   return (
-    <form>
+    <div className="toolbar">
       {Object.entries(options).map(([key, opts]) => (
-        <Dropdown
-          key={key}
-          label={key}
-          value={jobDetails[key] || ''}
-          options={opts || []}
-          onChange={(val) => handleChange(key, val)}
-        />
+        <div key={key} className="dropdown-label">
+          <label>{key}</label>
+          <select
+            value={formData[key as keyof DropdownOptions] || ''}
+            onChange={(e) => handleChange(key as keyof typeof formData, e.target.value)}
+          >
+            <option value="">Select {key}</option>
+            {opts?.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        </div>
       ))}
-      {/* Add other job detail fields here */}
-    </form>
+
+      <div className="dropdown-label" style={{ flexBasis: '100%' }}>
+        <label>Notes</label>
+        <textarea
+          value={formData.notes}
+          onChange={(e) => handleChange('notes', e.target.value)}
+          rows={4}
+          style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+        />
+      </div>
+
+      <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
+        <button onClick={handleSave} style={{ padding: '0.5rem 1rem' }}>Save</button>
+        <button onClick={handleClose} style={{ padding: '0.5rem 1rem' }}>Close</button>
+      </div>
+    </div>
   );
 };
 
