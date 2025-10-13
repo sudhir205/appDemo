@@ -371,4 +371,42 @@ root.render(
   </React.StrictMode>
 );
 
+--------------DataGrid.tsx------
+import React, { useRef } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import { ColDef } from 'ag-grid-community';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+
+interface DataGridProps {
+  rowData: any[];
+}
+
+const DataGrid: React.FC<DataGridProps> = ({ rowData }) => {
+  const gridRef = useRef<AgGridReact>(null);
+
+  const columnDefs: ColDef[] = [
+    { headerName: 'ID', field: 'id', sortable: true, filter: true },
+    { headerName: 'Name', field: 'name', sortable: true, filter: true },
+    { headerName: 'Status', field: 'status', sortable: true, filter: true }
+  ];
+
+  return (
+    <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
+      <AgGridReact
+        ref={gridRef}
+        rowData={rowData}
+        columnDefs={columnDefs}
+        domLayout="autoHeight"
+        animateRows={true}
+      />
+    </div>
+  );
+};
+
+export default DataGrid;
+
+
+
+
 
