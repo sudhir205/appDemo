@@ -548,3 +548,65 @@ export default defineConfig({
 });
 
 
+---------------------------------------
+
+------------------------------------------------------------
+import React, { useEffect, useRef } from 'react';
+
+interface AutoRefreshProps {
+  onRefresh: () => void;
+  intervalMs?: number; // Optional: defaults to 30 seconds
+}
+
+const AutoRefresh: React.FC<AutoRefreshProps> = ({ onRefresh, intervalMs = 30000 }) => {
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Initial trigger
+    onRefresh();
+
+    // Set up interval
+    intervalRef.current = setInterval(() => {
+      onRefresh();
+    }, intervalMs);
+
+    // Cleanup on unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [onRefresh, intervalMs]);
+
+  return null; // This component doesn't render anything
+};
+
+export default AutoRefresh;
+
+-----------------------------------
+
+import React, { useState } from 'react';
+import AutoRefresh from './AutoRefresh';
+
+const Dashboard: React.FC = () => {
+  const [data, setData] = useState<string>('Loading...');
+
+  const fetchData = async () => {
+    // Replace with your actual API call
+    const response = await fetch('/api/data');
+    const result = await response.text();
+    setData(result);
+  };
+
+  return (
+    <div>
+      <h2>Live Data</h2>
+      <p>{data}</p>
+      <AutoRefresh onRefresh={fetchData} />
+    </div>
+  );
+};
+
+export default Dashboard;
+
+
