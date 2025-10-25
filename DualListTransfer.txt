@@ -1,0 +1,79 @@
+import React, { useState, useEffect } from 'react';
+import { fetchAvailableItems, fetchSelectedItems } from './apiService';
+import './DualListTransfer.css';
+
+export default function DualListTransfer() {
+  const [available, setAvailable] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [checked, setChecked] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [avail, select] = await Promise.all([
+          fetchAvailableItems(),
+          fetchSelectedItems(),
+        ]);
+        setAvailable(avail);
+        setSelected(select);
+      } catch (err) {
+        setError('Failed to load items');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const handleToggle = (item) => {
+    setChecked((prev) =>
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
+    );
+  };
+
+  const moveItems = (source, setSource, target, setTarget) => {
+    const moving = checked.filter((item) => source.includes(item));
+    setSource(source.filter((item) => !moving.includes(item)));
+    setTarget([...target, ...moving]);
+    setChecked(checked.filter((item) => !moving.includes(item)));
+  };
+
+  if (loading) return <p>Loading items...</p>;
+  if (error) return <p>{error}</p>;
+
+  return (
+    <div className="dual-list-container">
+      <ListBox title="Available" items={available} checked={checked} onToggle={handleToggle} />
+      <div className="button-group">
+        <button onClick={() => moveItems(available, setAvailable, selected, setSelected)}>{'>'}</button>
+        <button onClick={() => moveItems(selected, setSelected, available, setAvailable)}>{'<'}</button>
+      </div>
+      <ListBox title="Selected" items={selected} checked={checked} onToggle={handleToggle} />
+    </div>
+  );
+}
+
+function ListBox({ title, items, checked, onToggle }) {
+  return (
+    <div className="list-box">
+      <h4>{title}</h4>
+      <ul>
+        {items.map((item) => (
+          <li key={item.id}>
+            <label>
+              <input
+                type="checkbox"
+                checked={checked.includes(item)}
+                onChange={() => onToggle(item)}
+              />
+              {item.label}
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

@@ -1,0 +1,12 @@
+// apiService.ts
+import axios from 'axios';
+
+export const fetchAvailableItems = async () => {
+  const response = await axios.get('/api/items/available');
+  return response.data; // Expected: [{ id, label }]
+};
+
+export const fetchSelectedItems = async () => {
+  const response = await axios.get('/api/items/selected');
+  return response.data; // Expected: [{ id, label }]
+};
