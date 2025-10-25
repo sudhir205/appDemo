@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { fetchAvailableItems, fetchSelectedItems } from './apiService';
 import './DualListTransfer.css';
 
+type Item = {
+  id: number;
+  label: string;
+};
+
 export default function DualListTransfer() {
-  const [available, setAvailable] = useState([]);
-  const [selected, setSelected] = useState([]);
-  const [checked, setChecked] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [available, setAvailable] = useState<Item[]>([]);
+  const [selected, setSelected] = useState<Item[]>([]);
+  const [checked, setChecked] = useState<Item[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -28,17 +33,26 @@ export default function DualListTransfer() {
     loadData();
   }, []);
 
-  const handleToggle = (item) => {
+  const handleToggle = (item: Item) => {
     setChecked((prev) =>
-      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
+      prev.some((i) => i.id === item.id)
+        ? prev.filter((i) => i.id !== item.id)
+        : [...prev, item]
     );
   };
 
-  const moveItems = (source, setSource, target, setTarget) => {
-    const moving = checked.filter((item) => source.includes(item));
-    setSource(source.filter((item) => !moving.includes(item)));
+  const moveItems = (
+    source: Item[],
+    setSource: React.Dispatch<React.SetStateAction<Item[]>>,
+    target: Item[],
+    setTarget: React.Dispatch<React.SetStateAction<Item[]>>
+  ) => {
+    const moving = checked.filter((item) =>
+      source.some((s) => s.id === item.id)
+    );
+    setSource(source.filter((item) => !moving.some((m) => m.id === item.id)));
     setTarget([...target, ...moving]);
-    setChecked(checked.filter((item) => !moving.includes(item)));
+    setChecked(checked.filter((item) => !moving.some((m) => m.id === item.id)));
   };
 
   if (loading) return <p>Loading items...</p>;
@@ -46,17 +60,46 @@ export default function DualListTransfer() {
 
   return (
     <div className="dual-list-container">
-      <ListBox title="Available" items={available} checked={checked} onToggle={handleToggle} />
+      <ListBox
+        title="Available"
+        items={available}
+        checked={checked}
+        onToggle={handleToggle}
+      />
       <div className="button-group">
-        <button onClick={() => moveItems(available, setAvailable, selected, setSelected)}>{'>'}</button>
-        <button onClick={() => moveItems(selected, setSelected, available, setAvailable)}>{'<'}</button>
+        <button
+          onClick={() =>
+            moveItems(available, setAvailable, selected, setSelected)
+          }
+        >
+          {'>'}
+        </button>
+        <button
+          onClick={() =>
+            moveItems(selected, setSelected, available, setAvailable)
+          }
+        >
+          {'<'}
+        </button>
       </div>
-      <ListBox title="Selected" items={selected} checked={checked} onToggle={handleToggle} />
+      <ListBox
+        title="Selected"
+        items={selected}
+        checked={checked}
+        onToggle={handleToggle}
+      />
     </div>
   );
 }
 
-function ListBox({ title, items, checked, onToggle }) {
+type ListBoxProps = {
+  title: string;
+  items: Item[];
+  checked: Item[];
+  onToggle: (item: Item) => void;
+};
+
+function ListBox({ title, items, checked, onToggle }: ListBoxProps) {
   return (
     <div className="list-box">
       <h4>{title}</h4>
@@ -66,7 +109,7 @@ function ListBox({ title, items, checked, onToggle }) {
             <label>
               <input
                 type="checkbox"
-                checked={checked.includes(item)}
+                checked={checked.some((i) => i.id === item.id)}
                 onChange={() => onToggle(item)}
               />
               {item.label}

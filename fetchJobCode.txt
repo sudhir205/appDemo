@@ -1,12 +1,19 @@
-// apiService.ts
-import axios from 'axios';
-
-export const fetchAvailableItems = async () => {
-  const response = await axios.get('/api/items/available');
-  return response.data; // Expected: [{ id, label }]
+export const fetchAvailableItems = async (): Promise<Item[]> => {
+  const response = await fetch('/api/items/available');
+  if (!response.ok) throw new Error('Failed to fetch available items');
+  const data = await response.json(); // [{ jobCode: "J001" }]
+  return data.map((item: { jobCode: string }) => ({
+    id: item.jobCode,
+    label: item.jobCode,
+  }));
 };
 
-export const fetchSelectedItems = async () => {
-  const response = await axios.get('/api/items/selected');
-  return response.data; // Expected: [{ id, label }]
+export const fetchSelectedItems = async (): Promise<Item[]> => {
+  const response = await fetch('/api/items/selected');
+  if (!response.ok) throw new Error('Failed to fetch selected items');
+  const data = await response.json(); // [{ jobCode: "J002" }]
+  return data.map((item: { jobCode: string }) => ({
+    id: item.jobCode,
+    label: item.jobCode,
+  }));
 };
