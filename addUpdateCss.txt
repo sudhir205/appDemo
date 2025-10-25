@@ -1,0 +1,22 @@
+.dual-list-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 2rem;
+}
+
+.list-box {
+  border: 1px solid #ccc;
+  padding: 1rem;
+  width: 200px;
+  height: 300px;
+  overflow-y: auto;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+}
