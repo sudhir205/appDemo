@@ -103,19 +103,19 @@ function ListBox({ title, items, checked, onToggle }: ListBoxProps) {
   return (
     <div className="list-box">
       <h4>{title}</h4>
-      <ul>
-        {items.map((item) => (
-          <li key={item.id}>
-            <label>
-              <input
-                type="checkbox"
-                checked={checked.some((i) => i.id === item.id)}
-                onChange={() => onToggle(item)}
-              />
+      <ul className="list-ul">
+        {items.map((item) => {
+          const isSelected = checked.some((i) => i.id === item.id);
+          return (
+            <li
+              key={item.id}
+              className={`list-row ${isSelected ? 'selected' : ''}`}
+              onClick={() => onToggle(item)}
+            >
               {item.label}
-            </label>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
