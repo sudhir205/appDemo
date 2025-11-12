@@ -1,0 +1,176 @@
+// columns.ts
+export const columns = [
+  { key: 'name', label: 'Name', sortable: true, filterable: true },
+  { key: 'age', label: 'Age', sortable: true, filterable: true },
+  { key: 'country', label: 'Country', sortable: true, filterable: true },
+];
+
+// data.ts
+export const data = [
+  { name: 'Alice', age: 25, country: 'USA' },
+  { name: 'Bob', age: 30, country: 'Canada' },
+  { name: 'Charlie', age: 35, country: 'UK' },
+];
+
+
+------------------------------------
+// useTableLogic.ts
+import { useState, useMemo } from 'react';
+
+export function useTableLogic(data, columns) {
+  const [sortKey, setSortKey] = useState(null);
+  const [sortAsc, setSortAsc] = useState(true);
+  const [filters, setFilters] = useState({});
+
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortAsc(!sortAsc);
+    else {
+      setSortKey(key);
+      setSortAsc(true);
+    }
+  };
+
+  const updateFilter = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const filteredData = useMemo(() => {
+    return data.filter((row) =>
+      columns.every((col) =>
+        !filters[col.key] ||
+        String(row[col.key]).toLowerCase().includes(filters[col.key].toLowerCase())
+      )
+    );
+  }, [data, filters]);
+
+  const sortedData = useMemo(() => {
+    if (!sortKey) return filteredData;
+    return [...filteredData].sort((a, b) => {
+      const valA = a[sortKey];
+      const valB = b[sortKey];
+      return sortAsc
+        ? valA > valB ? 1 : -1
+        : valA < valB ? 1 : -1;
+    });
+  }, [filteredData, sortKey, sortAsc]);
+
+  return { sortedData, toggleSort, updateFilter, sortKey, sortAsc, filters };
+}
+
+----------------------------------------------------
+
+// TableGrid.tsx
+import React, { useState } from 'react';
+import { columns } from './columns';
+import { data } from './data';
+import { useTableLogic } from './useTableLogic';
+
+const TableGrid = () => {
+  const { sortedData, toggleSort, updateFilter, sortKey, sortAsc, filters } = useTableLogic(data, columns);
+  const [visibleCols, setVisibleCols] = useState(columns.map((col) => col.key));
+
+  const toggleColumn = (key) => {
+    setVisibleCols((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  return (
+    <div style={{ display: 'flex' }}>
+      {/* Side Panel */}
+      <div style={{ marginRight: '1rem' }}>
+        <h4>Columns</h4>
+        {columns.map((col) => (
+          <label key={col.key}>
+            <input
+              type="checkbox"
+              checked={visibleCols.includes(col.key)}
+              onChange={() => toggleColumn(col.key)}
+            />
+            {col.label}
+          </label>
+        ))}
+      </div>
+
+      {/* Table */}
+      <table border="1">
+        <thead>
+          <tr>
+            {columns.map((col) =>
+              visibleCols.includes(col.key) ? (
+                <th key={col.key} onClick={() => toggleSort(col.key)}>
+                  {col.label}
+                  {sortKey === col.key && (sortAsc ? ' 🔼' : ' 🔽')}
+                </th>
+              ) : null
+            )}
+          </tr>
+          <tr>
+            {columns.map((col) =>
+              visibleCols.includes(col.key) && col.filterable ? (
+                <th key={col.key}>
+                  <input
+                    value={filters[col.key] || ''}
+                    onChange={(e) => updateFilter(col.key, e.target.value)}
+                    placeholder={`Filter ${col.label}`}
+                  />
+                </th>
+              ) : visibleCols.includes(col.key) ? (
+                <th key={col.key}></th>
+              ) : null
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {sortedData.map((row, idx) => (
+            <tr key={idx}>
+              {columns.map((col) =>
+                visibleCols.includes(col.key) ? (
+                  <td key={col.key}>{row[col.key]}</td>
+                ) : null
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default TableGrid;
+-------------------------------------------------------------
+
+// Dashboard.tsx
+import React, { useEffect, useState } from 'react';
+import TableGrid from './TableGrid'; // Your custom table
+import { columns } from './columns';
+
+const Dashboard = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/users') // Replace with your actual endpoint
+      .then((res) => res.json())
+      .then((json) => {
+        setData(json);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch data:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      <h2>User Dashboard</h2>
+      <TableGrid columns={columns} data={data} />
+    </div>
+  );
+};
+
+export default Dashboard;
+----------------------------------------------------
